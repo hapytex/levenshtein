@@ -1,10 +1,12 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
 
 module Data.Foldable.Levenshtein (
-    -- * Simple Levenshtein edit metrics
-    levenshteinDistance, levenshteinDistance'
-    -- * Define generic Levenshtein distances
-  , genericLevenshteinDistance, genericReversedLevenshtein, genericLevenshtein
+    -- * Calculate the Levenshtein distance
+    genericLevenshteinDistance, levenshteinDistance, levenshteinDistance'
+    -- * Obtain the Levenshtein distance together with the path of 'Edit's
+  , genericLevenshtein, levenshtein, levenshtein'
+    -- * Obtain the Levenshtein distance together with a reversed path of 'Edit's
+  , genericReversedLevenshtein, reversedLevenshtein, reversedLevenshtein'
     -- * Data type to present modifications from one 'Foldable' to the other.a
   , Edit(Add, Rem, Copy, Swap)
   ) where
@@ -22,6 +24,9 @@ _defaddrem = const 1
 _defswap :: Num b => a -> a -> b
 _defswap = const _defaddrem
 
+_addDefaults :: Num b => ((a -> b) -> (a -> b) -> (a -> a -> b) -> c) -> c
+_addDefaults f = f _defaddrem _defaddrem _defswap
+
 -- | A data type that is used to list how to edit a sequence to form another sequence.
 data Edit a
   = Add a  -- ^ We add the given element to the sequence.
@@ -36,12 +41,39 @@ levenshteinDistance :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> b  -- ^ The edit distance between the two 'Foldable's.
 levenshteinDistance = levenshteinDistance' (==)
 
+levenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
+  => f a  -- ^ The original given sequence.
+  -> g a  -- ^ The target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+levenshtein = levenshtein' (==)
+
+levenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
+  => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
+  -> f a  -- ^ The original given sequence.
+  -> g a  -- ^ The target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+levenshtein' = _addDefaults . genericLevenshtein
+
+reversedLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
+  => f a  -- ^ The original given sequence.
+  -> g a  -- ^ The target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+reversedLevenshtein = reversedLevenshtein' (==)
+
+reversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
+  => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
+  -> f a  -- ^ The original given sequence.
+  -> g a  -- ^ The target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+reversedLevenshtein' = _addDefaults . genericReversedLevenshtein
+
+
 levenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> f a  -- ^ The original given sequence.
   -> g a  -- ^ The target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
-levenshteinDistance' eq = (eq `genericLevenshteinDistance`) _defaddrem _defaddrem _defswap
+levenshteinDistance' = _addDefaults . genericLevenshteinDistance
 
 -- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. This function returns
 -- a number that is the sum of the costs to transform the first 'Foldable' into the second 'Foldable'.
@@ -80,7 +112,6 @@ genericLevenshtein :: (Foldable f, Foldable g, Num b, Ord b)
   -> g a  -- ^ The target sequence.
   -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
 genericLevenshtein eq ad rm sw xs' = second reverse . genericReversedLevenshtein eq ad rm sw xs'
-
 
 -- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. The 2-tuple returns the distance
 -- as first item of the 2-tuple, and the list of 'Edit's in reverse order as second item.
