@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
 
+-- TODO: boundaries
+
 module Data.Foldable.Levenshtein (
     -- * Calculate the Levenshtein distance
     genericLevenshteinDistance, levenshteinDistance, levenshteinDistance'
