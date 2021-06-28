@@ -22,7 +22,7 @@ module Data.Foldable.Levenshtein (
     -- * Obtain the Levenshtein distance together with a reversed path of 'Edit's
   , genericReversedLevenshtein, reversedLevenshtein, reversedLevenshtein'
     -- * Data type to present modifications from one 'Foldable' to the other.a
-  , Edit(Add, Rem, Copy, Swap)
+  , Edit(Add, Rem, Copy, Swap), applyEdits
   ) where
 
 import Control.Arrow(second)
@@ -48,6 +48,18 @@ data Edit a
   | Copy a  -- ^ We copy an element from the sequence, this basically act as a /no-op/.
   | Swap a a  -- ^ We modify the given first item into the second item, this thus denotes a replacement.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
+
+
+applyEdits :: Eq a => [Edit a] -> [a] -> Maybe [a]
+applyEdits [] ys = Just ys
+applyEdits (Add x : xs) ys = (x :) <$> applyEdits xs ys
+applyEdits (Rem x : xs) (y : ys)
+  | x == y = applyEdits xs ys
+applyEdits (Swap y x : xs) (y' : ys)
+  | y == y' = (x :) <$> applyEdits xs ys
+applyEdits (Copy x : xs) (y : ys)
+  | x == y = (y :) <$> applyEdits xs ys
+applyEdits _ _ = Nothing
 
 -- | Determine the edit distance where an addition, removal, and change all count as 1, and where
 -- the 'Eq' instance is used to determine if there is a change between two items.
