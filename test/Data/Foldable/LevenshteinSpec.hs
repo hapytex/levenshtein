@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, TypeApplications #-}
+{-# LANGUAGE ExistentialQuantification, RankNTypes, TypeApplications #-}
 
 module Data.Foldable.LevenshteinSpec (
     spec
@@ -41,4 +41,4 @@ ifZeroThenSame :: forall a . Eq a => [a] -> [a] -> Bool
 ifZeroThenSame xs ys = (levenshteinDistance xs ys == (0 :: Int)) == (xs == ys)
 
 testApplyingEdits :: forall a . Eq a => [a] -> [a] -> Bool
-testApplyingEdits xs ys = applyEdits (snd (levenshtein xs ys :: Int)) xs == Just ys
+testApplyingEdits xs ys = applyEdits (snd (levenshtein xs ys)) xs == Just ys
