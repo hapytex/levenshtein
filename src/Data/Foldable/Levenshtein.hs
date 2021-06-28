@@ -1,6 +1,18 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
 
--- TODO: boundaries
+{-|
+Module      : Data.Foldable.Levenshtein
+Description : A module to determine the edit distance and the edits to rewrite a given 'Foldable' to another 'Foldable'.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+The /Levenshtein distance/ is the /minimal/ number of additions, removals, and updates one has to make to
+convert one list of items into another list of items. In this module we provide some functions that makes
+it convenient to calculate the distance and the sequence of edits, and furthermore ways to alter the score
+for an addition, removal, edit that can depend on what item is modified.
+-}
+
 
 module Data.Foldable.Levenshtein (
     -- * Calculate the Levenshtein distance
@@ -37,31 +49,48 @@ data Edit a
   | Swap a a  -- ^ We modify the given first item into the second item, this thus denotes a replacement.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
 
+-- | Determine the edit distance where an addition, removal, and change all count as 1, and where
+-- the 'Eq' instance is used to determine if there is a change between two items.
 levenshteinDistance :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => f a  -- ^ The original given sequence.
   -> g a  -- ^ The target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 levenshteinDistance = levenshteinDistance' (==)
 
+-- | Determine the edit distance together with the steps to transform the first foldable
+-- (as list) into a second foldable (as list). Add, remove and swapping items all count
+-- as one edit distance.
 levenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => f a  -- ^ The original given sequence.
   -> g a  -- ^ The target sequence.
   -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
 levenshtein = levenshtein' (==)
 
+-- | Determine the edit distance together with the steps to transform the first foldable
+-- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
+-- as one edit distance. One passes a function to determine if the elements of the two
+-- 'Foldable's are equivalent.
 levenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> f a  -- ^ The original given sequence.
   -> g a  -- ^ The target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with a list of edits to transform the first 'Foldable' to the second one.
 levenshtein' = _addDefaults . genericLevenshtein
 
+-- | Determine the edit distance together with the steps to transform the first foldable
+-- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
+-- as one edit distance. The equality function '(==)' is used to determine if two items are
+-- equivalent.
 reversedLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => f a  -- ^ The original given sequence.
   -> g a  -- ^ The target sequence.
   -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
 reversedLevenshtein = reversedLevenshtein' (==)
 
+-- | Determine the edit distance together with the steps to transform the first foldable
+-- (as list) into a second 'Foldable' (as list) in /reversed/ order. Add, remove and
+-- swapping items all count as one edit distance. The given equality function is used
+-- to determine if two items are equivalent.
 reversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> f a  -- ^ The original given sequence.
@@ -69,7 +98,9 @@ reversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
 reversedLevenshtein' = _addDefaults . genericReversedLevenshtein
 
-
+-- | Determine the edit distance together with the steps to transform the first foldable
+-- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
+-- as one edit distance
 levenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> f a  -- ^ The original given sequence.
