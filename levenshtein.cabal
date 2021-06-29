@@ -1,7 +1,11 @@
 name:                levenshtein
 version:             0.1.0.0
 synopsis:            Calculate the edit distance between two foldables.
--- description:
+description:
+  A package to determine the edit distance between two 'Foldable's.
+  These are converted to lists, and the Levenshtein distance determine
+  how many additions, removals and changes are necessary to change
+  the first list into the second list.
 homepage:            https://github.com/hapytex/levenshtein#readme
 license:             BSD3
 license-file:        LICENSE

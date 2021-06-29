@@ -2,14 +2,14 @@
 
 {-|
 Module      : Data.Foldable.Levenshtein
-Description : A module to determine the edit distance and the edits to rewrite a given 'Foldable' to another 'Foldable'.
+Description : A module to determine the edit distance and the 'Edit's to rewrite a given 'Foldable' to another 'Foldable'.
 Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
 Portability : POSIX
 
 The /Levenshtein distance/ is the /minimal/ number of additions, removals, and updates one has to make to
 convert one list of items into another list of items. In this module we provide some functions that makes
-it convenient to calculate the distance and the sequence of edits, and furthermore ways to alter the score
+it convenient to calculate the distance and the sequence of 'Edit's, and furthermore ways to alter the score
 for an addition, removal, edit that can depend on what item is modified.
 -}
 
@@ -106,7 +106,7 @@ instance Ord1 Edit where
           go (Swap xa ya) (Swap xb yb) = cmp xa xb <> cmp ya yb
 
 -- | Apply the given list of 'Edit's to the given list.
--- If the edits make sense, it returns the result wrapped
+-- If the 'Edit's make sense, it returns the result wrapped
 -- in a 'Just', if a check with the item that is removed/replaced
 -- fails, the function will return 'Nothing'.
 applyEdits :: Eq a
