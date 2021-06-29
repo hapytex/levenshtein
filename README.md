@@ -66,22 +66,22 @@ In the table below, we show the different implementations to determine the Leven
   <tbody>
     <tr>
       <th>Normal</th>
-      <td><code></code></td>
-      <td><code></code></td>
-      <td><code></code></td>
-      <td><code></code></td>
+      <td><code>genericLevenshtein</code></td>
+      <td><code>genericLevenshtein'</code></td>
+      <td><code>levenshtein'</code></td>
+      <td><code>levenshtein</code></td>
     </tr>
     <tr>
       <th>Reversed</th>
-      <td><code></code></td>
-      <td><code></code></td>
-      <td><code></code></td>
-      <td><code></code></td>
+      <td><code>genericReversedLevenshtein</code></td>
+      <td><code>genericReversedLevenshtein'</code></td>
+      <td><code>reversedLevenshtein'</code></td>
+      <td><code>reversedLevenshtein</code></td>
     </tr>
     <tr>
       <th>Without</th>
-      <td><code></code></td>
-      <td><code></code></td>
+      <td><code>genericLevenshteinDistance</code></td>
+      <td><code>genericLevenshteinDistance'</code></td>
       <td><code>levenshteinDistance'</code></td>
       <td><code>levenshteinDistance</code></td>
     </tr>
