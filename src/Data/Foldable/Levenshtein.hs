@@ -13,7 +13,6 @@ it convenient to calculate the distance and the sequence of edits, and furthermo
 for an addition, removal, edit that can depend on what item is modified.
 -}
 
-
 module Data.Foldable.Levenshtein (
     -- * Calculate the Levenshtein distance
     genericLevenshteinDistance, levenshteinDistance, levenshteinDistance'
@@ -26,11 +25,19 @@ module Data.Foldable.Levenshtein (
   ) where
 
 import Control.Arrow(second)
+import Control.DeepSeq(NFData, NFData1)
 
+import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
 import Data.Foldable(toList)
+import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
+import Data.Hashable(Hashable)
+import Data.Hashable.Lifted(Hashable1)
 
 import GHC.Generics(Generic, Generic1)
+
+import Test.QuickCheck(oneof)
+import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), Arbitrary1(liftArbitrary), arbitrary1)
 
 _defaddrem :: Num b => a -> b
 _defaddrem = const 1
@@ -49,8 +56,63 @@ data Edit a
   | Swap a a  -- ^ We modify the given first item into the second item, this thus denotes a replacement.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
 
+instance Arbitrary1 Edit where
+    liftArbitrary arb = oneof [Add <$> arb, Rem <$> arb, Copy <$> arb, Swap <$> arb <*> arb]
 
-applyEdits :: Eq a => [Edit a] -> [a] -> Maybe [a]
+instance Arbitrary a => Arbitrary (Edit a) where
+    arbitrary = arbitrary1
+
+instance Binary a => Binary (Edit a) where
+    put (Add x) = putWord8 0 >> put x
+    put (Rem x) = putWord8 1 >> put x
+    put (Copy x) = putWord8 2 >> put x
+    put (Swap xa xb) = putWord8 3 >> put xa >> put xb
+    get = do
+        tp <- getWord8
+        case tp of
+          0 -> Add <$> get
+          1 -> Rem <$> get
+          2 -> Copy <$> get
+          3 -> Swap <$> get <*> get
+          _ -> fail ("The numer " ++ show tp ++ " is not a valid Edit item.")
+
+instance Eq1 Edit where
+  liftEq eq = go
+    where go (Add xa) (Add xb) = eq xa xb
+          go (Rem xa) (Rem xb) = eq xa xb
+          go (Copy xa) (Copy xb) = eq xa xb
+          go (Swap xa ya) (Swap xb yb) = eq xa xb && eq ya yb
+          go _ _ = False
+
+instance Hashable a => Hashable (Edit a)
+
+instance Hashable1 Edit
+
+instance NFData a => NFData (Edit a)
+
+instance NFData1 Edit
+
+instance Ord1 Edit where
+  liftCompare cmp = go
+    where go (Add a) (Add b) = cmp a b
+          go (Add _) _ = LT
+          go _ (Add _) = GT
+          go (Rem a) (Rem b) = cmp a b
+          go (Rem _) _ = LT
+          go _ (Rem _) = GT
+          go (Copy a) (Copy b) = cmp a b
+          go (Copy _) _ = LT
+          go _ (Copy _) = GT
+          go (Swap xa ya) (Swap xb yb) = cmp xa xb <> cmp ya yb
+
+-- | Apply the given list of 'Edit's to the given list.
+-- If the edits make sense, it returns the result wrapped
+-- in a 'Just', if a check with the item that is removed/replaced
+-- fails, the function will return 'Nothing'.
+applyEdits :: Eq a
+  => [Edit a]  -- ^ The given list of 'Edit's to apply to the given list.
+  -> [a]  -- ^ The list of items to edit with the given 'Edit's.
+  -> Maybe [a]  -- ^ The modified list, given the checks hold about what item to remove/replace wrapped in a 'Just'; 'Nothing' otherwise.
 applyEdits [] ys = Just ys
 applyEdits (Add x : xs) ys = (x :) <$> applyEdits xs ys
 applyEdits (Rem x : xs) (y : ys)

@@ -10,7 +10,7 @@ import Test.Hspec(Spec, it)
 import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
 
 ntimes :: Int
-ntimes = 10000000
+ntimes = 100000
 
 spec :: Spec
 spec = do
