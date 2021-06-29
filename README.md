@@ -45,6 +45,38 @@ Besides the `Edit` object, the module exports three types of functions:
 The third type is more an optimized version of the first two types since it will
 take less memory and finish slightly faster.
 
+Some functions allow to specify the penalty for an insertion, deletion, and replacement,
+and this even per item.
+
+In the table below, we show the different implementations to determine the Levenshtein distance:
+
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">Edits</th>
+      <th>Eq</th>
+      <th colspan="2">Equality function</th>
+      <th>Eq</th>
+    </tr>
+    <tr>
+      <th colspan="2">penalty functions</th>
+      <th colspan="2">default</th>
+      <th>Eq</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Normal</th>
+    </tr>
+    <tr>
+      <th>Reversed</th>
+    </tr>
+    <tr>
+      <th>Without</th>
+    </tr>
+  </tbody>
+</table>
+
 ## `levenshtein` is *safe* Haskell
 
 The `levenshtein` package does not work with arrays, vectors,
