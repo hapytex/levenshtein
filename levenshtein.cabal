@@ -14,7 +14,9 @@ maintainer:          hapytexteu+gh@gmail.com
 copyright:           2021 Willem Van Onsem
 category:            tools
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:
+    README.md
+  , CHANGELOG.md
 cabal-version:       >=1.10
 
 library
