@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
 
 {-|
 Module      : Data.Foldable.Levenshtein
@@ -21,7 +21,7 @@ module Data.Foldable.Levenshtein (
     -- * Obtain the Levenshtein distance together with a reversed path of 'Edit's
   , genericReversedLevenshtein, genericReversedLevenshtein', reversedLevenshtein, reversedLevenshtein'
     -- * Data type to present modifications from one 'Foldable' to the other.a
-  , Edit(Add, Rem, Copy, Swap), applyEdits
+  , Edit(Add, Rem, Copy, Swap), Edits, applyEdits
   ) where
 
 import Control.Arrow(second)
@@ -33,6 +33,9 @@ import Data.Foldable(toList)
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)
 import Data.Hashable.Lifted(Hashable1)
+#if __GLASGOW_HASKELL__ < 803
+import Data.Semigroup(Semigroup((<>)))
+#endif
 
 import GHC.Generics(Generic, Generic1)
 
@@ -105,12 +108,15 @@ instance Ord1 Edit where
           go _ (Copy _) = GT
           go (Swap xa ya) (Swap xb yb) = cmp xa xb <> cmp ya yb
 
+-- | A type alias for a /list/ of 'Edit's.
+type Edits a = [Edit a]
+
 -- | Apply the given list of 'Edit's to the given list.
 -- If the 'Edit's make sense, it returns the result wrapped
 -- in a 'Just', if a check with the item that is removed/replaced
 -- fails, the function will return 'Nothing'.
 applyEdits :: Eq a
-  => [Edit a]  -- ^ The given list of 'Edit's to apply to the given list.
+  => Edits a  -- ^ The given list of 'Edit's to apply to the given list.
   -> [a]  -- ^ The list of items to edit with the given 'Edit's.
   -> Maybe [a]  -- ^ The modified list, given the checks hold about what item to remove/replace wrapped in a 'Just'; 'Nothing' otherwise.
 applyEdits [] ys = Just ys
@@ -138,7 +144,7 @@ levenshteinDistance = levenshteinDistance' (==)
 levenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+  -> (b, Edits a)  -- ^ The edit distance between the two 'Foldable's.
 levenshtein = levenshtein' (==)
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
@@ -149,7 +155,7 @@ levenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with a list of 'Edit's to transform the first 'Foldable' to the second one.
+  -> (b, Edits a)  -- ^ The edit distance between the two 'Foldable's together with a list of 'Edit's to transform the first 'Foldable' to the second one.
 levenshtein' = _addDefaults . genericLevenshtein'
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
@@ -159,7 +165,7 @@ levenshtein' = _addDefaults . genericLevenshtein'
 reversedLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with the 'Edit's to make to convert the first sequence into the second.
+  -> (b, Edits a)  -- ^ The edit distance between the two 'Foldable's together with the 'Edit's to make to convert the first sequence into the second.
 reversedLevenshtein = reversedLevenshtein' (==)
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
@@ -170,7 +176,7 @@ reversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with a reversed list of 'Edit's to transform the original sequence into the target sequence.
+  -> (b, Edits a)  -- ^ The edit distance between the two 'Foldable's together with a reversed list of 'Edit's to transform the original sequence into the target sequence.
 reversedLevenshtein' = _addDefaults . genericReversedLevenshtein'
 
 -- | Determine the edit distance to transform the first 'Foldable' (as list)
@@ -234,7 +240,7 @@ genericLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
+  -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
 genericLevenshtein' eq ad rm sw xs' = second reverse . genericReversedLevenshtein' eq ad rm sw xs'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
@@ -248,7 +254,7 @@ genericLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
+  -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
 genericLevenshtein = genericLevenshtein' (==)
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
@@ -263,7 +269,7 @@ genericReversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
+  -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
   where
     row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) tl
@@ -290,5 +296,5 @@ genericReversedLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
-  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
+  -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedLevenshtein = genericReversedLevenshtein' (==)
