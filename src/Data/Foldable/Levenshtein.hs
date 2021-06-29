@@ -22,7 +22,7 @@ module Data.Foldable.Levenshtein (
     -- * Obtain the Levenshtein distance together with a reversed path of 'Edit's
   , genericReversedLevenshtein, reversedLevenshtein, reversedLevenshtein'
     -- * Data type to present modifications from one 'Foldable' to the other.a
-  , Edit(Add, Rem, Copy, Swap), applyEdits, testApplyingEdits
+  , Edit(Add, Rem, Copy, Swap), applyEdits
   ) where
 
 import Control.Arrow(second)
@@ -145,9 +145,6 @@ genericLevenshteinDistance eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 x
     curryNextCell x l = uncurry (uncurry (nextCell x l))
     nextRow ys ~(da@(~(dn:ds))) x = scanl (curryNextCell x) (dn+rm x) (zip (zip ys da) ds)
     tl = toList ys'
-
-testApplyingEdits :: Eq a => [a] -> [a] -> Bool
-testApplyingEdits xs ys = applyEdits (snd (levenshtein xs ys)) xs == Just ys
 
 -- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. The 2-tuple returns the distance
 -- as first item of the 2-tuple, and the list of 'Edit's in normal order as second item.

@@ -10,7 +10,7 @@ import Test.Hspec(Spec, it)
 import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
 
 ntimes :: Int
-ntimes = 100000
+ntimes = 10000000
 
 spec :: Spec
 spec = do
@@ -54,6 +54,6 @@ hammingDistanceBound xs ys = length xs /= length ys || levenshteinDistance xs ys
 
 hammingDistance :: forall a . Eq a => [a] -> [a] -> Int
 hammingDistance (x:xs) (y:ys)
-  | x == y = 1 + hammingDistance xs ys
-  | otherwise = hammingDistance xs ys
+  | x == y = hammingDistance xs ys
+  | otherwise = 1 + hammingDistance xs ys
 hammingDistance _ _ = 0
