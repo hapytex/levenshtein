@@ -9,26 +9,29 @@ import Data.Foldable.Levenshtein(applyEdits, levenshtein, levenshteinDistance)
 import Test.Hspec(Spec, it)
 import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
 
+ntimes :: Int
+ntimes = 100000
+
 spec :: Spec
 spec = do
-  it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (lowerBoundLengthDiff @ Int)))
-  it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (upperBoundLengthDiff @ Int)))
-  it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (ifZeroThenSame @ Int)))
-  it "test triangle inequality" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (triangleInequality @ Int)))
-  it "test applying edits" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testApplyingEdits @ Int)))
-  it "Hamming distance bound" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (hammingDistanceBound @ Int)))
-  it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (lowerBoundLengthDiff @ Char)))
-  it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (upperBoundLengthDiff @ Char)))
-  it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (ifZeroThenSame @ Char)))
-  it "test triangle inequality" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (triangleInequality @ Char)))
-  it "test applying edits" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testApplyingEdits @ Char)))
-  it "Hamming distance bound" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (hammingDistanceBound @ Char)))
-  it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (lowerBoundLengthDiff @ Bool)))
-  it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (upperBoundLengthDiff @ Bool)))
-  it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (ifZeroThenSame @ Bool)))
-  it "test triangle inequality" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (triangleInequality @ Bool)))
-  it "test applying edits" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testApplyingEdits @ Bool)))
-  it "Hamming distance bound" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (hammingDistanceBound @ Bool)))
+  it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (lowerBoundLengthDiff @ Int)))
+  it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (upperBoundLengthDiff @ Int)))
+  it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (ifZeroThenSame @ Int)))
+  it "test triangle inequality" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (triangleInequality @ Int)))
+  it "test applying edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (testApplyingEdits @ Int)))
+  it "Hamming distance bound" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (hammingDistanceBound @ Int)))
+  it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (lowerBoundLengthDiff @ Char)))
+  it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (upperBoundLengthDiff @ Char)))
+  it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (ifZeroThenSame @ Char)))
+  it "test triangle inequality" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (triangleInequality @ Char)))
+  it "test applying edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (testApplyingEdits @ Char)))
+  it "Hamming distance bound" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (hammingDistanceBound @ Char)))
+  it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (lowerBoundLengthDiff @ Bool)))
+  it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (upperBoundLengthDiff @ Bool)))
+  it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (ifZeroThenSame @ Bool)))
+  it "test triangle inequality" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (triangleInequality @ Bool)))
+  it "test applying edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (testApplyingEdits @ Bool)))
+  it "Hamming distance bound" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (hammingDistanceBound @ Bool)))
 
 
 lowerBoundLengthDiff :: forall a . Eq a => [a] -> [a] -> Bool
