@@ -173,7 +173,7 @@ genericReversedLevenshtein eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 x
     row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) tl
     nextCell x (l, le) y (lt, lte) (t, te)
       | eq x y = (lt, Copy x : lte)
-      | scs <= scr && lt <= sca = (scs, Swap x y:lte)
+      | scs <= scr && scs <= sca = (scs, Swap x y:lte)
       | sca <= scr = (sca, Add y:le)
       | otherwise = (scr, Rem x:te)
       where sca = l + ad y
