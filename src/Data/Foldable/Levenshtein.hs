@@ -74,7 +74,7 @@ instance Binary a => Binary (Edit a) where
           1 -> Rem <$> get
           2 -> Copy <$> get
           3 -> Swap <$> get <*> get
-          _ -> fail ("The numer " ++ show tp ++ " is not a valid Edit item.")
+          _ -> fail ("The number " ++ show tp ++ " is not a valid Edit item.")
 
 instance Eq1 Edit where
   liftEq eq = go
@@ -123,87 +123,89 @@ applyEdits (Copy x : xs) (y : ys)
   | x == y = (y :) <$> applyEdits xs ys
 applyEdits _ _ = Nothing
 
--- | Determine the edit distance where an addition, removal, and change all count as 1, and where
--- the 'Eq' instance is used to determine if there is a change between two items.
+-- | Determine the edit distance where an addition, removal, and change all count as one, and where
+-- the 'Eq' instance is used to determine whether two items are equivalent, this is for example useful
+-- for case-insensitve matching.
 levenshteinDistance :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
-  => f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  => f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 levenshteinDistance = levenshteinDistance' (==)
 
--- | Determine the edit distance together with the steps to transform the first foldable
--- (as list) into a second foldable (as list). Add, remove and swapping items all count
+-- | Determine the edit distance together with the steps to transform the first 'Foldable'
+-- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
 -- as one edit distance.
 levenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
-  => f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  => f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
 levenshtein = levenshtein' (==)
 
--- | Determine the edit distance together with the steps to transform the first foldable
+-- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
--- as one edit distance. One passes a function to determine if the elements of the two
--- 'Foldable's are equivalent.
+-- as one edit distance. The first parameter is a function to determine if two items
+-- are of the 'Foldable's are considered equivalent.
 levenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with a list of edits to transform the first 'Foldable' to the second one.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with a list of 'Edit's to transform the first 'Foldable' to the second one.
 levenshtein' = _addDefaults . genericLevenshtein'
 
--- | Determine the edit distance together with the steps to transform the first foldable
+-- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
 -- as one edit distance. The equality function '(==)' is used to determine if two items are
 -- equivalent.
 reversedLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
-  => f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+  => f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with the 'Edit's to make to convert the first sequence into the second.
 reversedLevenshtein = reversedLevenshtein' (==)
 
--- | Determine the edit distance together with the steps to transform the first foldable
+-- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list) in /reversed/ order. Add, remove and
 -- swapping items all count as one edit distance. The given equality function is used
 -- to determine if two items are equivalent.
 reversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
-  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, [Edit a])  -- ^ The edit distance between the two 'Foldable's together with a reversed list of 'Edit's to transform the original sequence into the target sequence.
 reversedLevenshtein' = _addDefaults . genericReversedLevenshtein'
 
--- | Determine the edit distance together with the steps to transform the first foldable
--- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
--- as one edit distance
+-- | Determine the edit distance to transform the first 'Foldable' (as list)
+-- into a second 'Foldable' (as list). Add, remove and swapping items all count
+-- as one edit distance. The first parameter is an equivalence relation that
+-- is used to determine if two items are considered equivalent.
 levenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 levenshteinDistance' = _addDefaults . genericLevenshteinDistance'
 
 -- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. This function returns
--- a number that is the sum of the costs to transform the first 'Foldable' into the second 'Foldable'.
--- as first item of the 2-tuple, and the list of 'Edit's in reverse order as second item.
+-- the sum of the costs to transform the first 'Foldable' (as list) into the second 'Foldable' (as list). The '(==)' function is used
+-- to determine if two items are equivalent.
 genericLevenshteinDistance :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => (a -> b)  -- ^ The cost of adding the given item. The return value should be positive.
-  -> (a -> b)  -- ^ The cost of removing the given item.  The return value should be positive.
+  -> (a -> b)  -- ^ The cost of removing the given item. The return value should be positive.
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 genericLevenshteinDistance = genericLevenshteinDistance' (==)
 
 -- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. This function returns
--- a number that is the sum of the costs to transform the first 'Foldable' into the second 'Foldable'.
--- as first item of the 2-tuple, and the list of 'Edit's in reverse order as second item.
+-- the sum of the costs to transform the first 'Foldable' (as list) into the second 'Foldable' (as list). The first parameter is an equivalence relation
+-- to determine if two items are considered equivalent.
 genericLevenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> (a -> b)  -- ^ The cost of adding the given item. The return value should be positive.
-  -> (a -> b)  -- ^ The cost of removing the given item.  The return value should be positive.
+  -> (a -> b)  -- ^ The cost of removing the given item. The return value should be positive.
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
   where
@@ -220,37 +222,48 @@ genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
     nextRow ys da@(~(dn:ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip ys da) ds)
     tl = toList ys'
 
--- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. The 2-tuple returns the distance
--- as first item of the 2-tuple, and the list of 'Edit's in normal order as second item.
+-- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
+-- to apply to convert the first 'Foldable' (as list) into the second item (as list)
+-- The cost functions of adding, removing and editing characters will be used to minimize
+-- the total edit distance. The first parameter is an equivalence relation that is used
+-- to determine if two items of the 'Foldable's are considered equivalent.
 genericLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> (a -> b)  -- ^ The cost of adding the given item. The return value should be positive.
-  -> (a -> b)  -- ^ The cost of removing the given item.  The return value should be positive.
+  -> (a -> b)  -- ^ The cost of removing the given item. The return value should be positive.
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
 genericLevenshtein' eq ad rm sw xs' = second reverse . genericReversedLevenshtein' eq ad rm sw xs'
 
+-- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
+-- to apply to convert the first 'Foldable' (as list) into the second item (as list)
+-- The cost functions of adding, removing and editing characters will be used to minimize
+-- the total edit distance. The '(==)' function is used to determine if two items of the
+-- 'Foldable's are considered equivalent.
 genericLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => (a -> b)  -- ^ The cost of adding the given item. The return value should be positive.
-  -> (a -> b)  -- ^ The cost of removing the given item.  The return value should be positive.
+  -> (a -> b)  -- ^ The cost of removing the given item. The return value should be positive.
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
   -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
 genericLevenshtein = genericLevenshtein' (==)
 
--- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. The 2-tuple returns the distance
--- as first item of the 2-tuple, and the list of 'Edit's in reverse order as second item.
+-- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
+-- to apply to convert the first 'Foldable' (as list) into the second item (as list)
+-- in /reversed/ order. The cost functions of adding, removing and editing characters
+-- will be used to minimize the total edit distance. The first parameter is an
+-- equivalence relation that is used to determine if two items of the 'Foldable's are considered equivalent.
 genericReversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
   -> (a -> b)  -- ^ The cost of adding the given item. The return value should be positive.
-  -> (a -> b)  -- ^ The cost of removing the given item.  The return value should be positive.
+  -> (a -> b)  -- ^ The cost of removing the given item. The return value should be positive.
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
-  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first sequence to the second one.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
   where
     row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) tl
@@ -266,11 +279,16 @@ genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
     nextRow ys da@(~(~(dn, de):ds)) x = scanl (curryNextCell x) (dn+rm x,Rem x:de) (zip (zip ys da) ds)
     tl = toList ys'
 
+-- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
+-- to apply to convert the first 'Foldable' (as list) into the second item (as list)
+-- in /reversed/ order. The cost functions of adding, removing and editing characters
+-- will be used to minimize the total edit distance. The '(==)' function is used
+-- to determine if two items of the 'Foldable's are considered equivalent.
 genericReversedLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   => (a -> b)  -- ^ The cost of adding the given item. The return value should be positive.
-  -> (a -> b)  -- ^ The cost of removing the given item.  The return value should be positive.
+  -> (a -> b)  -- ^ The cost of removing the given item. The return value should be positive.
   -> (a -> a -> b)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter. The return value should be positive.
-  -> f a  -- ^ The original given sequence.
-  -> g a  -- ^ The target sequence.
-  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first sequence to the second one.
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedLevenshtein = genericReversedLevenshtein' (==)
