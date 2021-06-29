@@ -61,18 +61,29 @@ In the table below, we show the different implementations to determine the Leven
     <tr>
       <th colspan="2">penalty functions</th>
       <th colspan="2">default</th>
-      <th>Eq</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>Normal</th>
+      <td><code></code></td>
+      <td><code></code></td>
+      <td><code></code></td>
+      <td><code></code></td>
     </tr>
     <tr>
       <th>Reversed</th>
+      <td><code></code></td>
+      <td><code></code></td>
+      <td><code></code></td>
+      <td><code></code></td>
     </tr>
     <tr>
       <th>Without</th>
+      <td><code></code></td>
+      <td><code></code></td>
+      <td><code>levenshteinDistance'</code></td>
+      <td><code>levenshteinDistance</code></td>
     </tr>
   </tbody>
 </table>
