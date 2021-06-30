@@ -20,7 +20,7 @@ module Data.Foldable.Levenshtein (
   , genericLevenshtein, genericLevenshtein', levenshtein, levenshtein'
     -- * Obtain the Levenshtein distance together with a reversed path of 'Edit's
   , genericReversedLevenshtein, genericReversedLevenshtein', reversedLevenshtein, reversedLevenshtein'
-    -- * Data type to present modifications from one 'Foldable' to the other.a
+    -- * Data type to present modifications from one 'Foldable' to another.
   , Edit(Add, Rem, Copy, Swap), Edits, applyEdits
   ) where
 
