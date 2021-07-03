@@ -159,7 +159,7 @@ editsCost :: (Foldable f, Num b)
   => EditScore a b  -- ^ An 'EditScore' object that determines how costly each transformation is.
   -> f (Edit a)  -- ^ The given 'Foldable' of 'Edit's for which we want to calculate the score.
   -> b  -- ^ The given edit distance for all the given 'Edit's with the given 'EditScore'.
-editsCost es = foldr ((+) . (editCost es)) 0
+editsCost es = foldr ((+) . editCost es) 0
 
 -- | Apply the given list of 'Edit's to the given list.
 -- If the 'Edit's make sense, it returns the result wrapped
