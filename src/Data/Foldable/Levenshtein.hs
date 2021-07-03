@@ -22,6 +22,8 @@ module Data.Foldable.Levenshtein (
   , genericReversedLevenshtein, genericReversedLevenshtein', reversedLevenshtein, reversedLevenshtein'
     -- * Data type to present modifications from one 'Foldable' to another.
   , Edit(Add, Rem, Copy, Swap), Edits, applyEdits
+    -- * Present the modification costs
+  , EditScore(editAdd, editRemove, editReplace, editTranspose), editCost, editsCost
   ) where
 
 import Control.Arrow(second)
@@ -29,6 +31,7 @@ import Control.DeepSeq(NFData, NFData1)
 
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
+import Data.Default(Default(def))
 import Data.Foldable(toList)
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)
@@ -51,12 +54,33 @@ _defswap = const _defaddrem
 _addDefaults :: Num b => ((a -> b) -> (a -> b) -> (a -> a -> b) -> c) -> c
 _addDefaults f = f _defaddrem _defaddrem _defswap
 
+-- | A data type that provides information about how costly a certain edit is. One can make use
+-- of this data type to change the cost functions in an effective way. The 'EditScore' scales linear,
+-- this means that if we double all the costs, the minimal edit cost will also double.
+data EditScore a b
+  = EditScore {
+      editAdd :: a -> b  -- ^ A function that determines the penalty to insert a given item.
+    , editRemove :: a -> b  -- ^ A function that determines the penalty of removing a given item.
+    , editReplace :: a -> a -> b  -- ^ A function that determines the penalty of replacing a given item with another given item.
+    , editTranspose :: a -> a -> b  -- ^ A function that determines the penalty of transposing two items.
+  }
+  deriving (Functor, Generic, Generic1)
+
+constantEditScore :: b -> EditScore a b
+constantEditScore x = EditScore c1 c1 c2 c2
+  where c1 = const x
+        c2 = const c1
+
+instance Num b => Default (EditScore a b) where
+  def = constantEditScore 1
+
 -- | A data type that is used to list how to edit a sequence to form another sequence.
 data Edit a
   = Add a  -- ^ We add the given element to the sequence.
   | Rem a  -- ^ We remove the given element to the sequence.
   | Copy a  -- ^ We copy an element from the sequence, this basically act as a /no-op/.
   | Swap a a  -- ^ We modify the given first item into the second item, this thus denotes a replacement.
+  | Transpose a a -- ^ We swap two characters for the given string, this edit is only available for the /Damerau-Levenshtein distance/.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
 
 instance Arbitrary1 Edit where
@@ -70,6 +94,7 @@ instance Binary a => Binary (Edit a) where
     put (Rem x) = putWord8 1 >> put x
     put (Copy x) = putWord8 2 >> put x
     put (Swap xa xb) = putWord8 3 >> put xa >> put xb
+    put (Transpose xa xb) = putWord8 4 >> put xa >> put xb
     get = do
         tp <- getWord8
         case tp of
@@ -77,6 +102,7 @@ instance Binary a => Binary (Edit a) where
           1 -> Rem <$> get
           2 -> Copy <$> get
           3 -> Swap <$> get <*> get
+          4 -> Transpose <$> get <*> get
           _ -> fail ("The number " ++ show tp ++ " is not a valid Edit item.")
 
 instance Eq1 Edit where
@@ -85,6 +111,7 @@ instance Eq1 Edit where
           go (Rem xa) (Rem xb) = eq xa xb
           go (Copy xa) (Copy xb) = eq xa xb
           go (Swap xa ya) (Swap xb yb) = eq xa xb && eq ya yb
+          go (Transpose xa ya) (Transpose xb yb) = eq xa xb && eq ya yb
           go _ _ = False
 
 instance Hashable a => Hashable (Edit a)
@@ -107,9 +134,32 @@ instance Ord1 Edit where
           go (Copy _) _ = LT
           go _ (Copy _) = GT
           go (Swap xa ya) (Swap xb yb) = cmp xa xb <> cmp ya yb
+          go (Swap _ _) _ = LT
+          go _ (Swap _ _) = GT
+          go (Transpose xa ya) (Transpose xb yb) = cmp xa xb <> cmp ya yb
 
 -- | A type alias for a /list/ of 'Edit's.
 type Edits a = [Edit a]
+
+-- | Determine the cost of a given 'Edit' as described with the given 'EditScore' object.
+editCost :: Num b
+  => EditScore a b  -- ^ An 'EditScore' object that determines how costly each transformation is.
+  -> Edit a  -- ^ The given 'Edit' for which we want to calculate the score.
+  -> b  -- ^ The given edit distance for the given 'Edit' with the given 'EditScore'.
+editCost EditScore { editAdd=ad, editRemove=rm, editReplace=rp, editTranspose=tp } = go
+  where go (Add x) = ad x
+        go (Rem x) = rm x
+        go (Copy _) = 0
+        go (Swap x y) = rp x y
+        go (Transpose x y) = tp x y
+
+-- | Determine the cost of the given sequence of 'Edit's with the given 'EditScore' object
+-- that determines the cost for each edit. The sum of the 'Edit's is returned.
+editsCost :: (Foldable f, Num b)
+  => EditScore a b  -- ^ An 'EditScore' object that determines how costly each transformation is.
+  -> f (Edit a)  -- ^ The given 'Foldable' of 'Edit's for which we want to calculate the score.
+  -> b  -- ^ The given edit distance for all the given 'Edit's with the given 'EditScore'.
+editsCost es = foldr ((+) . (editCost es)) 0
 
 -- | Apply the given list of 'Edit's to the given list.
 -- If the 'Edit's make sense, it returns the result wrapped
@@ -127,6 +177,8 @@ applyEdits (Swap y x : xs) (y' : ys)
   | y == y' = (x :) <$> applyEdits xs ys
 applyEdits (Copy x : xs) (y : ys)
   | x == y = (y :) <$> applyEdits xs ys
+applyEdits (Transpose xa xb : xs) (ya : yb : ys)
+  | xa == yb && xb == ya = (yb :) . (ya :) <$> applyEdits xs ys
 applyEdits _ _ = Nothing
 
 -- | Determine the edit distance where an addition, removal, and change all count as one, and where
