@@ -1,5 +1,5 @@
 name:                levenshtein
-version:             0.1.1.0
+version:             0.1.2.0
 synopsis:            Calculate the edit distance between two foldables.
 description:
   A package to determine the edit distance between two 'Foldable's.
@@ -28,6 +28,7 @@ library
     , binary >= 0.2
     , hashable >=1.2.7.0
     , deepseq >=1.4.3.0
+    , data-default >=0.2
     , QuickCheck
   default-language:    Haskell2010
 
