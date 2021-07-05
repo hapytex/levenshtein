@@ -17,7 +17,7 @@ module Data.Foldable.Levenshtein (
     -- * Calculate the Levenshtein distance
     genericLevenshteinDistance, genericLevenshteinDistance', genericLevenshteinDistanceWithScore, genericLevenshteinDistanceWithScore', levenshteinDistance, levenshteinDistance'
     -- * Obtain the Levenshtein distance together with the path of 'Edit's
-  , genericLevenshtein, genericLevenshtein', levenshtein, levenshtein'
+  , genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein'
     -- * Obtain the Levenshtein distance together with a reversed path of 'Edit's
   , genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein'
     -- * Data type to present modifications from one 'Foldable' to another.
@@ -328,6 +328,26 @@ genericLevenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /normal/ order as second item to transform the first sequence to the second one.
 genericLevenshtein = genericLevenshtein' (==)
+
+-- | Calculate the Levenshtein distance and the modifications with the given equivalence relation, and the given 'EditScore' object that determine how costly each edit is.
+-- The function determines the minimal score with 'Add', 'Remove', 'Copy' and 'Swap' edits.
+genericLevenshteinWithScore' :: (Foldable f, Foldable g, Num b, Ord b)
+  => (a -> a -> Bool)  -- ^ The given equivalence relation to determine if two items are the same.
+  -> EditScore a b  -- ^ The given 'EditScore' object that specifies the cost of each mutation (add, remove, replace).
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
+genericLevenshteinWithScore' eq (EditScore ad rm sw _) = genericLevenshtein' eq ad rm sw
+
+-- | Calculate the Levenshtein distance and the modifications with the given 'EditScore' object that determine how costly each edit is.
+-- The function determines the minimal score with 'Add', 'Remove', 'Copy' and 'Swap' edits. The 'Eq' instance of the elements is used
+-- to determine if two items are equivalent.
+genericLevenshteinWithScore :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
+  => EditScore a b  -- ^ The given 'EditScore' object that specifies the cost of each mutation (add, remove, replace).
+  -> f a  -- ^ The given original sequence.
+  -> g a  -- ^ The given target sequence.
+  -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
+genericLevenshteinWithScore = genericLevenshteinWithScore' (==)
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
