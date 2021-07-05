@@ -23,7 +23,7 @@ module Data.Foldable.Levenshtein (
     -- * Data type to present modifications from one 'Foldable' to another.
   , Edit(Add, Rem, Copy, Swap), Edits, applyEdits
     -- * Present the modification costs
-  , EditScore(editAdd, editRemove, editReplace, editTranspose), editCost, editsCost
+  , EditScore(editAdd, editRemove, editReplace, editTranspose), editCost, editsCost, constantEditScore
   ) where
 
 import Control.Arrow(second)

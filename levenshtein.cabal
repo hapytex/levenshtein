@@ -45,6 +45,7 @@ test-suite             steinlevenh
   build-depends:
       base
     , levenshtein
+    , data-default >=0.2
     , hspec ==2.*
     , QuickCheck >=2.13
   build-tool-depends:
