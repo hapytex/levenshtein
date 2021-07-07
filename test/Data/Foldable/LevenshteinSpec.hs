@@ -5,7 +5,7 @@ module Data.Foldable.LevenshteinSpec (
   ) where
 
 import Data.Default(def)
-import Data.Foldable.Levenshtein(Edits, editsCost, applyEdits, genericLevenshteinDistance, genericLevenshteinDistance', genericLevenshteinDistanceWithScore, genericLevenshteinDistanceWithScore', levenshteinDistance, levenshteinDistance', genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein', genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein', constantEditScore)
+import Data.Foldable.Levenshtein(Edits, editsCost, applyEdits, genericLevenshteinDistance, genericLevenshteinDistance', genericLevenshteinDistanceWithScore, genericLevenshteinDistanceWithScore', levenshteinDistance, levenshteinDistance', genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein', genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein', constantEditScore, getOrigin, getTarget)
 
 import Test.Hspec(Spec, it)
 import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
@@ -25,6 +25,7 @@ spec = do
   it "Check if the score edit is linear" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkLinearCost @ Int)))
   it "Check if a linear modification yields the same edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkOptimalPathSame @ Int)))
   it "Check if a linear fmap yields the same edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkOptimalPathSameLinearFmap @ Int)))
+  it "Check if we can recover the origin and target with the edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkRecoveryOfOriginAndTarget @ Int)))
   it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (lowerBoundLengthDiff @ Char)))
   it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (upperBoundLengthDiff @ Char)))
   it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (ifZeroThenSame @ Char)))
@@ -35,6 +36,7 @@ spec = do
   it "Check if the score edit is linear" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkLinearCost @ Char)))
   it "Check if a linear modification yields the same edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkOptimalPathSame @ Char)))
   it "Check if a linear fmap yields the same edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkOptimalPathSameLinearFmap @ Char)))
+  it "Check if we can recover the origin and target with the edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkRecoveryOfOriginAndTarget @ Char)))
   it "lowerbound string difference" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (lowerBoundLengthDiff @ Bool)))
   it "upperbound largest string" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (upperBoundLengthDiff @ Bool)))
   it "if zero then same list" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (ifZeroThenSame @ Bool)))
@@ -45,6 +47,7 @@ spec = do
   it "Check if the score edit is linear" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkLinearCost @ Bool)))
   it "Check if a linear modification yields the same edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkOptimalPathSame @ Bool)))
   it "Check if a linear fmap yields the same edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkOptimalPathSameLinearFmap @ Bool)))
+  it "Check if we can recover the origin and target with the edits" (quickCheckWith stdArgs { maxSuccess = ntimes } (property (checkRecoveryOfOriginAndTarget @ Bool)))
 
 allDistancesSame :: forall a . Eq a => [a] -> [a] -> Bool
 allDistancesSame xs ys = da == db && db == dc && dc == dd && dd == de && de == df && df == dg && dg == dh
@@ -72,6 +75,10 @@ allDistancesSame xs ys = da == db && db == dc && dc == dd && dd == de && de == d
         (dp, erd) = genericReversedLevenshteinWithScore' (==) def xs ys :: (Int, Edits a)
         (dq, ere) = reversedLevenshtein xs ys :: (Int, Edits a)
         (dr, erf) = reversedLevenshtein' (==) xs ys :: (Int, Edits a)
+
+checkRecoveryOfOriginAndTarget :: forall a . Eq a => [a] -> [a] -> Bool
+checkRecoveryOfOriginAndTarget xs ys = getOrigin efa == xs && getTarget efa == ys
+  where (_, efa) = (levenshtein @ [] @ [] @ a @ Int) xs ys
 
 checkLinearCost :: forall a . Eq a => Int -> [a] -> [a] -> Bool
 checkLinearCost n' xs ys = (genericLevenshteinDistanceWithScore def xs ys) * n == genericLevenshteinDistanceWithScore (constantEditScore n) xs ys
