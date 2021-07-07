@@ -105,7 +105,8 @@ ifZeroThenSame :: forall a . Eq a => [a] -> [a] -> Bool
 ifZeroThenSame xs ys = (levenshteinDistance xs ys == (0 :: Int)) == (xs == ys)
 
 testApplyingEdits :: forall a . Eq a => [a] -> [a] -> Bool
-testApplyingEdits xs ys = applyEdits (snd ((levenshtein @[] @[] @a @Int) xs ys)) xs == Just ys
+testApplyingEdits xs ys = applyEdits eds xs == Just ys && (xs == ys || applyEdits eds ys == Nothing)
+  where (_, eds) = (levenshtein @[] @[] @a @Int) xs ys
 
 hammingDistanceBound :: forall a . Eq a => [a] -> [a] -> Bool
 hammingDistanceBound xs ys = length xs /= length ys || levenshteinDistance xs ys <= hammingDistance xs ys

@@ -178,7 +178,8 @@ applyEdits :: Eq a
   => Edits a  -- ^ The given list of 'Edit's to apply to the given list.
   -> [a]  -- ^ The list of items to edit with the given 'Edit's.
   -> Maybe [a]  -- ^ The modified list, given the checks hold about what item to remove/replace wrapped in a 'Just'; 'Nothing' otherwise.
-applyEdits [] ys = Just ys
+applyEdits [] [] = Just []
+applyEdits [] _ = Nothing
 applyEdits (Add x : xs) ys = (x :) <$> applyEdits xs ys
 applyEdits (Rem x : xs) (y : ys)
   | x == y = applyEdits xs ys
@@ -613,7 +614,6 @@ genericLevenshteinWithScore :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericLevenshteinWithScore = genericLevenshteinWithScore' (==)
---}
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
@@ -646,7 +646,6 @@ genericReversedDamerauLevenshtein' eq ad rm sw tr xs' ys' = last (foldl (nextRow
     nextRow' ys da@(~(~(dn, de):ds)) x = scanl (curryNextCell' x) (dn+rm x,Rem x:de) (zip (zip ys da) ds)
     tl = toList ys'
 
-{-
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
 -- in /reversed/ order. The cost functions of adding, removing and editing characters
