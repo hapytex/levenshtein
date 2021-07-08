@@ -76,7 +76,7 @@ jobs:
     strategy:
       matrix:
         resolver: [lts-14, lts-15, lts-16, lts-17]
-    name: Run the tests
+    name: Run the benchmarks
     runs-on: ubuntu-latest
     steps:
     - name: set up Haskell environment
