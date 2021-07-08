@@ -58,3 +58,17 @@ test-suite             steinlevenh
                      -Wincomplete-record-updates
                      -Wincomplete-uni-patterns
                      -Wredundant-constraints
+
+benchmark damerau
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          levenshtein-bench.hs
+  hs-source-dirs:   bench
+  ghc-options:      -Wall -threaded
+
+  -- dependencies from library
+  build-depends:
+      base
+    , deepseq
+    , levenshtein
+    , criterion >=0.4.0.0
