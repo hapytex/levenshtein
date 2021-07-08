@@ -26,7 +26,11 @@ module Data.Foldable.Levenshtein (
   , Edit(Add, Rem, Copy, Swap, Transpose), Edits, applyEdits
     -- * Present the modification costs
   , EditScore(editAdd, editRemove, editReplace, editTranspose), editCost, editsCost, constantEditScore, getOrigin, getTarget
+    -- * Type aliasses
+  , Edits, CostEdits, initialCostEdits
   ) where
+
+import Prelude hiding (last, scanl)
 
 import Control.Arrow(second)
 import Control.DeepSeq(NFData, NFData1)
@@ -38,6 +42,7 @@ import Data.Foldable(toList)
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)
 import Data.Hashable.Lifted(Hashable1)
+import Data.List.NonEmpty(last, scanl)
 #if __GLASGOW_HASKELL__ < 803
 import Data.Semigroup(Semigroup((<>)))
 #endif
@@ -149,6 +154,11 @@ type Edits a = [Edit a]
 
 -- | A type alias for a 2-tuple where the first item is the /cost/ of the 'Edit's and the second item a list of 'Edit's.
 type CostEdits a b = (b, Edits a)
+
+
+-- | The 'CostEdits' object that is used in the top left corner of the matrix written for the Levenshtein and Damerau-Levenshtein algorithm.
+initialCostEdits :: Num b => CostEdits a b
+initialCostEdits = (0, [])
 
 -- | Determine the cost of a given 'Edit' as described with the given 'EditScore' object.
 editCost :: Num b
@@ -396,7 +406,7 @@ genericReversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   -> CostEdits a b  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
   where
-    row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) tl
+    row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) initialCostEdits tl
     nextCell x (l, le) y (lt, lte) (t, te)
       | eq x y = (lt, Copy x : lte)
       | scs <= scr && scs <= sca = (scs, Swap x y:lte)
@@ -614,6 +624,13 @@ genericLevenshteinWithScore :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericLevenshteinWithScore = genericLevenshteinWithScore' (==)
+-}
+
+
+map0 :: (a -> b) -> CostEdits a b -> a -> CostEdits a b
+map0 f ~(w0, e0) x = (w0 + f x, Rem x : e0)
+
+-- map1 :: (a -> b) -> [CostEdits a b] -> a -> CostEdits a b
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
@@ -631,7 +648,7 @@ genericReversedDamerauLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedDamerauLevenshtein' eq ad rm sw tr xs' ys' = last (foldl (nextRow' tl) row0 xs')
   where
-    row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) tl
+    row0 = scanl (map0 rm) initialCostEdits tl
     nextCell' x (l, le) y (lt, lte) (t, te)
       | eq x y = (lt, Copy x : lte)
       | scs <= scr && scs <= sca = (scs, Swap x y:lte)
@@ -646,6 +663,7 @@ genericReversedDamerauLevenshtein' eq ad rm sw tr xs' ys' = last (foldl (nextRow
     nextRow' ys da@(~(~(dn, de):ds)) x = scanl (curryNextCell' x) (dn+rm x,Rem x:de) (zip (zip ys da) ds)
     tl = toList ys'
 
+{-
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
 -- in /reversed/ order. The cost functions of adding, removing and editing characters
