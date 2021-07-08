@@ -103,7 +103,7 @@ jobs:
     - name: run benchmarks and add this to the directory
       uses: hapytex/github-actions/actions/run-haskell-benchmarks@master
       with:
-        output: "${{ steps.haddock.output.haddock-path }}/benchmarks.html"
+        output-file: "${{ steps.haddock.outputs.haddock-path }}/benchmarks.html"
     - name: Add cname to the directory
       uses: hapytex/github-actions/actions/add-cname-to-directory@master
       with:
