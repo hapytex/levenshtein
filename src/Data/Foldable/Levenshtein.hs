@@ -27,7 +27,7 @@ module Data.Foldable.Levenshtein (
     -- * Present the modification costs
   , EditScore(editAdd, editRemove, editReplace, editTranspose), editCost, editsCost, constantEditScore, getOrigin, getTarget
     -- * Type aliasses
-  , Edits, CostEdits, initialCostEdits
+  , CostEdits, initialCostEdits
   ) where
 
 import Prelude hiding (last, scanl)
@@ -42,7 +42,7 @@ import Data.Foldable(toList)
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)
 import Data.Hashable.Lifted(Hashable1)
-import Data.List.NonEmpty(last, scanl)
+import Data.List.NonEmpty(NonEmpty((:|)), last, scanl)
 #if __GLASGOW_HASKELL__ < 803
 import Data.Semigroup(Semigroup((<>)))
 #endif
@@ -339,7 +339,7 @@ genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
             scr = t + rm x
             scs = lt + sw x y
     curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow ys da@(~(dn:ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip ys da) ds)
+    nextRow ys da@(~(dn :| ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip ys (dn : ds)) ds)
     tl = toList ys'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
@@ -416,7 +416,7 @@ genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
             scr = t + rm x
             scs = lt + sw x y
     curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow ys da@(~(~(dn, de):ds)) x = scanl (curryNextCell x) (dn+rm x,Rem x:de) (zip (zip ys da) ds)
+    nextRow ys da@(~(d0@(~(dn, de)) :| ds)) x = scanl (curryNextCell x) (dn+rm x,Rem x:de) (zip (zip ys (d0 : ds)) ds)
     tl = toList ys'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
@@ -624,7 +624,6 @@ genericLevenshteinWithScore :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> (b, Edits a)  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericLevenshteinWithScore = genericLevenshteinWithScore' (==)
--}
 
 
 map0 :: (a -> b) -> CostEdits a b -> a -> CostEdits a b
@@ -663,7 +662,6 @@ genericReversedDamerauLevenshtein' eq ad rm sw tr xs' ys' = last (foldl (nextRow
     nextRow' ys da@(~(~(dn, de):ds)) x = scanl (curryNextCell' x) (dn+rm x,Rem x:de) (zip (zip ys da) ds)
     tl = toList ys'
 
-{-
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
 -- in /reversed/ order. The cost functions of adding, removing and editing characters
