@@ -231,6 +231,8 @@ levenshteinDistance :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 levenshteinDistance = levenshteinDistance' (==)
+{-# SPECIALISE levenshteinDistance :: String -> String -> Int #-}
+{-# SPECIALISE levenshteinDistance :: [Int] -> [Int] -> Int #-}
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
@@ -240,6 +242,8 @@ levenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> CostEdits a b  -- ^ The edit distance between the two 'Foldable's.
 levenshtein = levenshtein' (==)
+{-# SPECIALISE levenshtein :: String -> String -> CostEdits Char Int #-}
+{-# SPECIALISE levenshteinDistance :: [Int] -> [Int] -> Int #-}
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
@@ -327,7 +331,7 @@ genericLevenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
-genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
+genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl nextRow row0 xs')
   where
     row0 = scanl (\w i -> w + ad i) 0 tl
     nextCell x l y lt t
@@ -338,8 +342,8 @@ genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
       where sca = l + ad y
             scr = t + rm x
             scs = lt + sw x y
-    curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow ys da@(~(dn :| ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip ys (dn : ds)) ds)
+    curryNextCell x l ~((d1, d2), d3) = nextCell x l d1 d2 d3
+    nextRow da@(~(dn :| ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip tl (dn : ds)) ds)
     tl = toList ys'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
@@ -407,16 +411,16 @@ genericReversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
 genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
   where
     row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) initialCostEdits tl
-    nextCell x (l, le) y (lt, lte) (t, te)
+    nextCell x rx (l, le) y (lt, lte) (t, te)
       | eq x y = (lt, Copy x : lte)
       | scs <= scr && scs <= sca = (scs, Swap x y:lte)
       | sca <= scr = (sca, Add y:le)
-      | otherwise = (scr, Rem x:te)
+      | otherwise = (scr, rx:te)
       where sca = l + ad y
             scr = t + rm x
             scs = lt + sw x y
-    curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow ys da@(~(d0@(~(dn, de)) :| ds)) x = scanl (curryNextCell x) (dn+rm x,Rem x:de) (zip (zip ys (d0 : ds)) ds)
+    curryNextCell x rx l ~(~(d1, d2), d3) = nextCell x rx l d1 d2 d3
+    nextRow ys da@(~(d0@(~(dn, de)) :| ds)) x = scanl (curryNextCell x rx) (dn+rm x,rx:de) (zip (zip ys (d0 : ds)) ds) where rx = Rem x
     tl = toList ys'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
@@ -561,7 +565,7 @@ genericLevenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
-genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
+genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl nextRow row0 xs')
   where
     row0 = scanl (\w i -> w + ad i) 0 tl
     nextCell x l y lt t
@@ -573,7 +577,7 @@ genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
             scr = t + rm x
             scs = lt + sw x y
     curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow ys da@(~(dn:ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip ys da) ds)
+    nextRow da@(~(dn:ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip tl da) ds)
     tl = toList ys'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
