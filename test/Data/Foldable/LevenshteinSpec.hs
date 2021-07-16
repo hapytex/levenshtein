@@ -5,7 +5,7 @@ module Data.Foldable.LevenshteinSpec (
   ) where
 
 import Data.Default(def)
-import Data.Foldable.Levenshtein(Edits, editsCost, applyEdits, genericLevenshteinDistance, genericLevenshteinDistance', genericLevenshteinDistanceWithScore, genericLevenshteinDistanceWithScore', levenshteinDistance, levenshteinDistance', genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein', genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein', constantEditScore, getOrigin, getTarget)
+import Data.Foldable.Levenshtein(Edits, editsCost, applyEdits, oppositeEdit, genericLevenshteinDistance, genericLevenshteinDistance', genericLevenshteinDistanceWithScore, genericLevenshteinDistanceWithScore', levenshteinDistance, levenshteinDistance', genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein', genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein', constantEditScore, getOrigin, getTarget)
 
 import Test.Hspec(Spec, it)
 import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
@@ -105,7 +105,7 @@ ifZeroThenSame :: forall a . Eq a => [a] -> [a] -> Bool
 ifZeroThenSame xs ys = (levenshteinDistance xs ys == (0 :: Int)) == (xs == ys)
 
 testApplyingEdits :: forall a . Eq a => [a] -> [a] -> Bool
-testApplyingEdits xs ys = applyEdits eds xs == Just ys && (xs == ys || applyEdits eds ys == Nothing)
+testApplyingEdits xs ys = applyEdits eds xs == Just ys && (xs == ys || applyEdits eds ys == Nothing) && applyEdits (oppositeEdit <$> eds) ys == Just xs
   where (_, eds) = (levenshtein @[] @[] @a @Int) xs ys
 
 hammingDistanceBound :: forall a . Eq a => [a] -> [a] -> Bool

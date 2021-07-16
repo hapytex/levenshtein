@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
+{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe #-}
 
 {-|
 Module      : Data.Foldable.Levenshtein
@@ -23,7 +23,7 @@ module Data.Foldable.Levenshtein (
   , genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein'
     -- * Damerau-Levenshtein distance
     -- * Data type to present modifications from one 'Foldable' to another.
-  , Edit(Add, Rem, Copy, Swap, Transpose), Edits, applyEdits
+  , Edit(Add, Rem, Copy, Swap, Transpose), Edits, oppositeEdit, applyEdits
     -- * Present the modification costs
   , EditScore(editAdd, editRemove, editReplace, editTranspose), editCost, editsCost, constantEditScore, getOrigin, getTarget
     -- * Type aliasses
@@ -38,10 +38,11 @@ import Control.DeepSeq(NFData, NFData1)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
 import Data.Default(Default(def))
-import Data.Foldable(toList)
+import Data.Foldable(toList, foldl')
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)
 import Data.Hashable.Lifted(Hashable1)
+import Data.List(scanl')
 import Data.List.NonEmpty(NonEmpty((:|)), last, scanl)
 #if __GLASGOW_HASKELL__ < 803
 import Data.Semigroup(Semigroup((<>)))
@@ -82,6 +83,14 @@ constantEditScore x = EditScore c1 c1 c2 c2
   where c1 = const x
         c2 = const c1
 
+instance Semigroup b => Semigroup (EditScore a b) where
+  EditScore a1 r1 s1 t1 <> EditScore a2 r2 s2 t2 = EditScore (a1 <> a2) (r1 <> r2) (s1 <> s2) (t1 <> t2)
+
+instance Monoid b => Monoid (EditScore a b) where
+  mempty = EditScore cm cm ccm ccm
+    where cm = const mempty
+          ccm = const cm
+
 instance Num b => Default (EditScore a b) where
   def = constantEditScore 1
 
@@ -93,6 +102,14 @@ data Edit a
   | Swap a a  -- ^ We modify the given first item into the second item, this thus denotes a replacement.
   | Transpose a a -- ^ We swap two characters for the given string, this edit is only available for the /Damerau-Levenshtein distance/.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
+
+-- | Map the given 'Edit' object to an 'Edit' object that does the opposite.
+oppositeEdit :: Edit a -> Edit a
+oppositeEdit (Add x) = (Rem x)
+oppositeEdit (Rem x) = (Add x)
+oppositeEdit c@(Copy _) = c
+oppositeEdit (Swap x y) = Swap y x
+oppositeEdit (Transpose x y) = Transpose y x
 
 instance Arbitrary1 Edit where
     liftArbitrary arb = oneof [Add <$> arb, Rem <$> arb, Copy <$> arb, Swap <$> arb <*> arb]
@@ -331,20 +348,29 @@ genericLevenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   -> f a  -- ^ The given original sequence.
   -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
-genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl nextRow row0 xs')
-  where
-    row0 = scanl (\w i -> w + ad i) 0 tl
-    nextCell x l y lt t
-      | eq x y = lt
-      | scs <= scr && scs <= sca = scs
-      | sca <= scr = sca
-      | otherwise = scr
-      where sca = l + ad y
-            scr = t + rm x
-            scs = lt + sw x y
-    curryNextCell x l ~((d1, d2), d3) = nextCell x l d1 d2 d3
-    nextRow da@(~(dn :| ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip tl (dn : ds)) ds)
-    tl = toList ys'
+genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl' nextRow (scanl (\(!w) (!i) -> w + ad i) 0 ys') xs')
+  where tl = toList ys'
+        nextRow ~(dn :| ds) x = scanl nextCell (dn + rmx) (zip3 tl (dn:ds) ds)
+          where !rmx = rm x
+                swx = sw x
+                eqx = eq x
+                nextCell l ~(y, lt, t)
+                 | eqx y = lt
+                 | otherwise = min (min sca scr) scs
+                  where !sca = l + ad y
+                        !scr = t + rmx
+                        !scs = lt + swx y
+
+genericDistanceLessThan' :: (Foldable f, Foldable g, Num b, Ord b)
+  => (a -> a -> Bool)
+  -> (a -> b)
+  -> (a -> b)
+  -> (a -> a -> b)
+  -> f a
+  -> g a
+  -> b
+  -> [Bool]
+genericDistanceLessThan' = undefined
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
@@ -410,18 +436,20 @@ genericReversedLevenshtein' :: (Foldable f, Foldable g, Num b, Ord b)
   -> CostEdits a b  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first 'Foldable' (as list) to the second 'Foldable' (as list).
 genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 xs')
   where
-    row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) initialCostEdits tl
-    nextCell x rx (l, le) y (lt, lte) (t, te)
-      | eq x y = (lt, Copy x : lte)
-      | scs <= scr && scs <= sca = (scs, Swap x y:lte)
-      | sca <= scr = (sca, Add y:le)
-      | otherwise = (scr, rx:te)
-      where sca = l + ad y
-            scr = t + rm x
-            scs = lt + sw x y
-    curryNextCell x rx l ~(~(d1, d2), d3) = nextCell x rx l d1 d2 d3
-    nextRow ys da@(~(d0@(~(dn, de)) :| ds)) x = scanl (curryNextCell x rx) (dn+rm x,rx:de) (zip (zip ys (d0 : ds)) ds) where rx = Rem x
     tl = toList ys'
+    row0 = scanl (\(~(!w, is)) i -> (w+ad i, Add i: is)) initialCostEdits tl
+    nextRow ys (~(d0@(~(dn, de)) :| ds)) x = scanl nextCell (dn+rm x,rx:de) (zip (zip ys (d0 : ds)) ds)
+        where rx = Rem x
+              !rmx = rm x
+              cx = Copy x
+              nextCell ~(l, le) ~(~(y, ~(lt, lte)), ~(t, te))
+                | eq x y = (lt, cx : lte)
+                | scs <= scr && scs <= sca = (scs, Swap x y:lte)
+                | sca <= scr = (sca, Add y:le)
+                | otherwise = (scr, rx:te)
+                 where sca = l + ad y
+                       scr = t + rmx
+                       scs = lt + sw x y
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
@@ -566,18 +594,15 @@ genericLevenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   -> g a  -- ^ The given target sequence.
   -> b  -- ^ The edit distance between the two 'Foldable's.
 genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl nextRow row0 xs')
-  where
-    row0 = scanl (\w i -> w + ad i) 0 tl
-    nextCell x l y lt t
-      | eq x y = lt
-      | scs <= scr && scs <= sca = scs
-      | sca <= scr = sca
-      | otherwise = scr
-      where sca = l + ad y
-            scr = t + rm x
-            scs = lt + sw x y
-    curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow da@(~(dn:ds)) x = scanl (curryNextCell x) (dn+rm x) (zip (zip tl da) ds)
+    row0 = scanl (\!w i -> w + ad i) 0 tl
+    nextRow ~(dn:ds) x = scanl nextCell (dn+rm x) (zip (zip tl da) ds)
+      where !rmx = rm
+            nextCell l ~(~(y, lt), t)
+              | eq x y = lt
+              | otherwise = min sca (min scr scs)
+              where !sca = l + ad y
+                    !scr = t + rmx
+                    !scs = lt + sw x y
     tl = toList ys'
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's

@@ -4,9 +4,12 @@ module Main (main) where
 import Control.Exception(evaluate)
 import Control.DeepSeq (rnf)
 
-import Criterion.Main(bench, bgroup, defaultMain, nf)
+import Criterion.Main(Benchmark, bench, bgroup, defaultMain, nf)
 
-import Data.Foldable.Levenshtein(levenshteinDistance)
+import Data.Default(def)
+import Data.Foldable.Levenshtein(Edit, editsCost, levenshteinDistance)
+
+import DiffBy(diffBy)
 
 smallA, smallB, bigA, bigB :: [Int]
 smallA = [0, 5 .. 100]
@@ -24,8 +27,23 @@ bigD = ['\00', '\03' .. '\7200']
 levInt :: ([Int], [Int]) -> Int
 levInt = uncurry levenshteinDistance
 
+dfbInt :: ([Int], [Int]) -> [Edit Int]
+dfbInt = uncurry (diffBy (==))
+
 levChar :: ([Char], [Char]) -> Int
 levChar = uncurry levenshteinDistance
+
+dfbChar :: (String, String) -> [Edit Char]
+dfbChar = uncurry (diffBy (==))
+
+bTests :: Eq a => (([a], [a]) -> Int) -> (([a], [a]) -> [Edit a]) -> ([a], [a]) -> [Benchmark]
+bTests f g xys = [bench "lib" (nf f xys), bench "tree-diff" (nf ((editsCost def :: [Edit a] -> Int) . g) xys)]
+
+btest0 :: ([Int], [Int]) -> [Benchmark]
+btest0 = bTests levInt dfbInt
+
+btest1 :: ([Char], [Char]) -> [Benchmark]
+btest1 = bTests levChar dfbChar
 
 main :: IO ()
 main = do
@@ -38,66 +56,24 @@ main = do
   defaultMain
     [ bgroup "Int"
       [ bgroup "same"
-        [ bgroup "small"
-          [ bench "lib" $ (nf levInt) (smallA, smallA)
-          , bench "lib" $ (nf levInt) (smallB, smallB)
-          ]
-        , bgroup "big"
-          [ bench "lib" $ (nf levInt) (bigA, bigA)
-          , bench "lib" $ (nf levInt) (bigB, bigB)
-          ]
+        [ bgroup "small" ((btest0 (smallA, smallA)) ++ btest0 (smallB, smallB))
+        , bgroup "big" ((btest0 (bigA, bigA)) ++ btest0 (bigB, bigB))
         ]
       , bgroup "different"
-        [ bgroup "small"
-          [ bench "lib" $ (nf levInt) (smallA, smallB)
-          , bench "lib" $ (nf levInt) (smallB, smallA)
-          ]
-        , bgroup "mixed"
-          [ bench "lib" $ (nf levInt) (smallA, bigB)
-          , bench "lib" $ (nf levInt) (bigB, smallA)
-          , bench "lib" $ (nf levInt) (smallA, bigB)
-          , bench "lib" $ (nf levInt) (bigB, smallA)
-          , bench "lib" $ (nf levInt) (smallB, bigB)
-          , bench "lib" $ (nf levInt) (bigB, smallB)
-          , bench "lib" $ (nf levInt) (smallB, bigA)
-          , bench "lib" $ (nf levInt) (bigA, smallB)
-          ]
-        , bgroup "big"
-          [ bench "lib" $ (nf levInt) (bigA, bigB)
-          , bench "lib" $ (nf levInt) (bigB, bigA)
-          ]
+        [ bgroup "small" (btest0 (smallA, smallB) ++ btest0 (smallB, smallA))
+        , bgroup "mixed" (btest0 (smallA, bigB) ++ btest0 (bigB, smallA) ++ btest0 (smallA, bigB) ++ btest0 (bigB, smallA) ++ btest0 (smallB, bigB) ++ btest0 (smallB, bigA) ++ btest0 (bigA, smallB))
+        , bgroup "big" (btest0 (bigA, bigB) ++ btest0 (bigB, bigA))
         ]
       ]
     , bgroup "Char"
       [ bgroup "same"
-        [ bgroup "small"
-          [ bench "lib" $ (nf levChar) (smallC, smallC)
-          , bench "lib" $ (nf levChar) (smallD, smallD)
-          ]
-        , bgroup "big"
-          [ bench "lib" $ (nf levChar) (bigC, bigC)
-          , bench "lib" $ (nf levChar) (bigD, bigD)
-          ]
+        [ bgroup "small" ((btest1 (smallC, smallC)) ++ btest1 (smallD, smallD))
+        , bgroup "big" ((btest1 (bigC, bigC)) ++ btest1 (bigD, bigD))
         ]
       , bgroup "different"
-        [ bgroup "small"
-          [ bench "lib" $ (nf levChar) (smallC, smallD)
-          , bench "lib" $ (nf levChar) (smallD, smallC)
-          ]
-        , bgroup "mixed"
-          [ bench "lib" $ (nf levChar) (smallC, bigD)
-          , bench "lib" $ (nf levChar) (bigD, smallC)
-          , bench "lib" $ (nf levChar) (smallC, bigD)
-          , bench "lib" $ (nf levChar) (bigD, smallC)
-          , bench "lib" $ (nf levChar) (smallD, bigD)
-          , bench "lib" $ (nf levChar) (bigD, smallD)
-          , bench "lib" $ (nf levChar) (smallD, bigC)
-          , bench "lib" $ (nf levChar) (bigC, smallD)
-          ]
-        , bgroup "big"
-          [ bench "lib" $ (nf levChar) (bigC, bigD)
-          , bench "lib" $ (nf levChar) (bigD, bigC)
-          ]
+        [ bgroup "small" (btest1 (smallC, smallD) ++ btest1 (smallD, smallC))
+        , bgroup "mixed" (btest1 (smallC, bigD) ++ btest1 (bigD, smallC) ++ btest1 (smallC, bigD) ++ btest1 (bigD, smallC) ++ btest1 (smallD, bigD) ++ btest1 (smallD, bigC) ++ btest1 (bigC, smallD))
+        , bgroup "big" (btest1 (bigC, bigD) ++ btest1 (bigD, bigC))
         ]
       ]
 

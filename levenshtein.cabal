@@ -64,11 +64,15 @@ benchmark damerau
   type:             exitcode-stdio-1.0
   main-is:          levenshtein-bench.hs
   hs-source-dirs:   bench
+  other-modules:
+    DiffBy
   ghc-options:      -Wall -threaded
 
   -- dependencies from library
   build-depends:
       base
+    , data-default
     , deepseq
     , levenshtein
     , criterion >=0.4.0.0
+    , primitive
