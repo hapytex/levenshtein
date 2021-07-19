@@ -21,6 +21,8 @@ module Data.Foldable.Levenshtein (
   , genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein'
     -- ** Obtain the Levenshtein distance together with a reversed path of 'Edit's
   , genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein'
+    -- ** Check if a distance is smaller than a threshold
+  , genericLevenshteinDistanceLessThan'
     -- * Damerau-Levenshtein distance
     -- * Data type to present modifications from one 'Foldable' to another.
   , Edit(Add, Rem, Copy, Swap, Transpose), Edits, oppositeEdit, applyEdits
@@ -42,7 +44,7 @@ import Data.Foldable(toList, foldl')
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)
 import Data.Hashable.Lifted(Hashable1)
-import Data.List(scanl')
+import Data.List(tails)
 import Data.List.NonEmpty(NonEmpty((:|)), last, scanl)
 #if __GLASGOW_HASKELL__ < 803
 import Data.Semigroup(Semigroup((<>)))
@@ -250,6 +252,7 @@ levenshteinDistance :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
 levenshteinDistance = levenshteinDistance' (==)
 {-# SPECIALISE levenshteinDistance :: String -> String -> Int #-}
 {-# SPECIALISE levenshteinDistance :: [Int] -> [Int] -> Int #-}
+{-# SPECIALISE levenshteinDistance :: Eq a => [a] -> [a] -> Int #-}
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
@@ -260,7 +263,8 @@ levenshtein :: (Foldable f, Foldable g, Eq a, Num b, Ord b)
   -> CostEdits a b  -- ^ The edit distance between the two 'Foldable's.
 levenshtein = levenshtein' (==)
 {-# SPECIALISE levenshtein :: String -> String -> CostEdits Char Int #-}
-{-# SPECIALISE levenshteinDistance :: [Int] -> [Int] -> Int #-}
+{-# SPECIALISE levenshtein :: [Int] -> [Int] -> CostEdits Int Int #-}
+{-# SPECIALISE levenshtein :: Eq a => [a] -> [a] -> CostEdits a Int #-}
 
 -- | Determine the edit distance together with the steps to transform the first 'Foldable'
 -- (as list) into a second 'Foldable' (as list). Add, remove and swapping items all count
@@ -350,18 +354,18 @@ genericLevenshteinDistance' :: (Foldable f, Foldable g, Num b, Ord b)
   -> b  -- ^ The edit distance between the two 'Foldable's.
 genericLevenshteinDistance' eq ad rm sw xs' ys' = last (foldl' nextRow (scanl (\(!w) (!i) -> w + ad i) 0 ys') xs')
   where tl = toList ys'
-        nextRow ~(dn :| ds) x = scanl nextCell (dn + rmx) (zip3 tl (dn:ds) ds)
+        nextRow ~(dn :| ds) x = scanl nextCell (dn + rmx) (zip tl (tails (dn:ds)))
           where !rmx = rm x
                 swx = sw x
                 eqx = eq x
-                nextCell l ~(y, lt, t)
+                nextCell l ~(y, ~(lt: ~(t:_)))
                  | eqx y = lt
                  | otherwise = min (min sca scr) scs
                   where !sca = l + ad y
                         !scr = t + rmx
                         !scs = lt + swx y
 
-genericDistanceLessThan' :: (Foldable f, Foldable g, Num b, Ord b)
+genericLevenshteinDistanceLessThan' :: (Foldable f, Foldable g, Num b, Ord b)
   => (a -> a -> Bool)
   -> (a -> b)
   -> (a -> b)
@@ -370,7 +374,7 @@ genericDistanceLessThan' :: (Foldable f, Foldable g, Num b, Ord b)
   -> g a
   -> b
   -> [Bool]
-genericDistanceLessThan' = undefined
+genericLevenshteinDistanceLessThan' = undefined
 
 -- | A function to determine the /Levenshtein distance/ together with a list of 'Edit's
 -- to apply to convert the first 'Foldable' (as list) into the second item (as list)
@@ -438,11 +442,11 @@ genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow tl) row0 
   where
     tl = toList ys'
     row0 = scanl (\(~(!w, is)) i -> (w+ad i, Add i: is)) initialCostEdits tl
-    nextRow ys (~(d0@(~(dn, de)) :| ds)) x = scanl nextCell (dn+rm x,rx:de) (zip (zip ys (d0 : ds)) ds)
+    nextRow ys (~(d0@(~(dn, de)) :| ds)) x = scanl nextCell (dn+rm x,rx:de) (zip ys (tails (d0 : ds)))
         where rx = Rem x
               !rmx = rm x
               cx = Copy x
-              nextCell ~(l, le) ~(~(y, ~(lt, lte)), ~(t, te))
+              nextCell ~(l, le) ~(y, ~(~(lt, lte) : ~(~(t, te) : _)))
                 | eq x y = (lt, cx : lte)
                 | scs <= scr && scs <= sca = (scs, Swap x y:lte)
                 | sca <= scr = (sca, Add y:le)
