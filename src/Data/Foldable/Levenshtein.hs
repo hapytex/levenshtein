@@ -31,7 +31,7 @@ import Control.DeepSeq(NFData, NFData1)
 
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
-import Data.Default(Default(def))
+import Data.Default.Class(Default(def))
 import Data.Foldable(toList)
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 import Data.Hashable(Hashable)

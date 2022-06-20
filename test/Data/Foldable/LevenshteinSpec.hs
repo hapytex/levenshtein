@@ -4,7 +4,7 @@ module Data.Foldable.LevenshteinSpec (
     spec
   ) where
 
-import Data.Default(def)
+import Data.Default.Class(def)
 import Data.Foldable.Levenshtein(Edits, editsCost, applyEdits, genericLevenshteinDistance, genericLevenshteinDistance', genericLevenshteinDistanceWithScore, genericLevenshteinDistanceWithScore', levenshteinDistance, levenshteinDistance', genericLevenshtein, genericLevenshtein', genericLevenshteinWithScore, genericLevenshteinWithScore', levenshtein, levenshtein', genericReversedLevenshtein, genericReversedLevenshtein', genericReversedLevenshteinWithScore, genericReversedLevenshteinWithScore', reversedLevenshtein, reversedLevenshtein', constantEditScore)
 
 import Test.Hspec(Spec, it)
